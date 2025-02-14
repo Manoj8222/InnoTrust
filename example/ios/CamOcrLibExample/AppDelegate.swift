@@ -22,9 +22,14 @@ class AppDelegate: RCTAppDelegate {
 
   override func bundleURL() -> URL? {
 #if DEBUG
-    RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
+    // Use your computer's IP address instead of localhost
+    let jsCodeLocation = URL(string: "http://192.168.1.46:8081/index.bundle?platform=ios")
+    // let jsCodeLocation = URL(string: "http://192.168.1.193:8081/index.bundle?platform=ios")
+    
+    return jsCodeLocation
 #else
-    Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+    // For production, use the bundled JS file
+    return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif
   }
 }
