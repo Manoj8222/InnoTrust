@@ -14,9 +14,9 @@ import VerificationScreen from './Verification';
 const { LivelinessDetectionBridge } = NativeModules;
 
 export default function App() {
-  // const [referenceNumber, setReferenceNumber] = useState<string | null>(null);
 
   const [referenceID, setReferenceID] = useState<string | null>(null);
+  const [clicked, setClicked] = useState<boolean>(false);
 
   useEffect(() => {
     const eventEmitter = new NativeEventEmitter(LivelinessDetectionBridge);
@@ -32,14 +32,8 @@ export default function App() {
     };
   }, []);
 
-  // useEffect(() => {
-  //   const subscription = camOcrLibEmitter.addListener('VerificationComplete', (event) => {
-  //     setReferenceNumber(event.referenceId);
-  //   });
-  //   return () => subscription.remove();
-  // }, []);
-
   const startEkyc = async () => {
+    setClicked(true);
     try {
       await showEkycUI();
     } catch (error) {
@@ -48,9 +42,10 @@ export default function App() {
   };
 
   const handleCloseVerification = () => {
+    setClicked(false);
     setReferenceID(null);
   };
-  if(!referenceID){
+  if(!referenceID && !clicked){
     return (
       <SafeAreaView style={styles.container}>
         <TouchableOpacity style={styles.button} onPress={startEkyc}>
@@ -59,7 +54,7 @@ export default function App() {
       </SafeAreaView>
     );
   }
-  if (referenceID) {
+  if (referenceID && clicked) {
     console.log(referenceID,"-------------++++++--------------")
     return <VerificationScreen referenceID={{ referenceID }} onClose={handleCloseVerification} />;
   }
