@@ -61,6 +61,7 @@ class IdCardFrontCapturedViewController: UIViewController {
     processBackButton.setTitleColor(.white, for: .normal)
     processBackButton.backgroundColor = UIColor.systemBlue
     processBackButton.layer.cornerRadius = 10
+   processBackButton.backgroundColor = UIColor(red: 0x59/255.0, green: 0xD5/255.0, blue: 0xFF/255.0, alpha: 1.0)
     processBackButton.translatesAutoresizingMaskIntoConstraints = false
     processBackButton.addTarget(self, action: #selector(processBackButtonTapped), for: .touchUpInside)
     view.addSubview(processBackButton)
@@ -153,13 +154,4 @@ class IdCardFrontCapturedViewController: UIViewController {
         print("🚀 Navigating to Liveliness Detection")
         // TODO: Implement navigation to liveliness detection screen
     }
-//     private func loadImageFromURL(url: URL, completion: @escaping (UIImage?) -> Void) {
-//         URLSession.shared.dataTask(with: url) { data, _, _ in
-//             if let data = data {
-//                 completion(UIImage(data: data))
-//             } else {
-//                 completion(nil)
-//             }
-//         }.resume()
-//     }
  }

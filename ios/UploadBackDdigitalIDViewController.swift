@@ -61,11 +61,13 @@ class UploadBackDigitalIDViewController: UIViewController, UIImagePickerControll
         uploadButton.setTitleColor(.white, for: .normal)
         uploadButton.layer.cornerRadius = 10
         uploadButton.translatesAutoresizingMaskIntoConstraints = false
+        uploadButton.backgroundColor = UIColor(red: 0x59/255.0, green: 0xD5/255.0, blue: 0xFF/255.0, alpha: 1.0)
         uploadButton.addTarget(self, action: #selector(uploadButtonTapped), for: .touchUpInside)
         view.addSubview(uploadButton)
         
         // ✅ Loading Indicator
         loadingIndicator.hidesWhenStopped = true
+        loadingIndicator.transform = CGAffineTransform(scaleX: 1.5, y: 1.5)
         loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(loadingIndicator)
         
@@ -73,7 +75,7 @@ class UploadBackDigitalIDViewController: UIViewController, UIImagePickerControll
         processingLabel.text = "Processing..."
         processingLabel.font = UIFont.boldSystemFont(ofSize: 18)
         processingLabel.textAlignment = .center
-        processingLabel.textColor = .white
+        processingLabel.textColor = .black
         processingLabel.isHidden = true
         processingLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(processingLabel)
@@ -93,8 +95,8 @@ class UploadBackDigitalIDViewController: UIViewController, UIImagePickerControll
             
             uploadButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
             uploadButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            uploadButton.widthAnchor.constraint(equalToConstant: 200),
-            uploadButton.heightAnchor.constraint(equalToConstant: 50),
+            uploadButton.widthAnchor.constraint(equalToConstant: 280),
+            uploadButton.heightAnchor.constraint(equalToConstant: 55),
             
             loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
@@ -119,7 +121,7 @@ class UploadBackDigitalIDViewController: UIViewController, UIImagePickerControll
             // ✅ Image Already Selected → Start Loading & API Call
             showLoading()
             if let imageData = selectedImage.jpegData(compressionQuality: 0.9) {
-                let referenceID = SharedViewModel.shared.referenceNumber
+                let referenceID = SharedViewModel.shared.referenceNumber!
                 uploadImageToAPI(data: imageData, referenceID: referenceID)
             }
         } else {
@@ -167,61 +169,8 @@ class UploadBackDigitalIDViewController: UIViewController, UIImagePickerControll
         self.uploadButton.isEnabled = false
     }
 }
-   // ✅ Open Gallery
-    @objc private func uploadButtonTapped() {
-        if let selectedImage = SharedViewModel.shared.digitalFrontImage {
-            // ✅ Image Already Selected → Start Loading & API Call
-            showLoading()
-            if let imageData = selectedImage.jpegData(compressionQuality: 0.9) {
-                let referenceID = "INNOVERIFYIOSDIG" + String(Int(Date().timeIntervalSince1970))
-                SharedViewModel.shared.referenceNumber = referenceID
-                uploadImageToAPI(data: imageData, referenceID: referenceID)
-            }
-        } else {
-            // ✅ No Image Selected → Open Image Picker
-            let imagePicker = UIImagePickerController()
-            imagePicker.delegate = self
-            imagePicker.sourceType = .photoLibrary
-            present(imagePicker, animated: true)
-        }
-    }
+   
     
-    // ✅ Handle Image Selection
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-        if let selectedImage = info[.originalImage] as? UIImage {
-            SharedViewModel.shared.digitalFrontImage = selectedImage
-            imageView.image = selectedImage
-            placeholderLabel.isHidden = true
-            uploadButton.setTitle("Continue", for: .normal) // ✅ Change Button Text
-        }
-        dismiss(animated: true)
-    }
-    
-    // ✅ Handle Image Picker Cancellation
-    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-        dismiss(animated: true)
-    }
-    
-    // ✅ Show Loading
-    private func showLoading() {
-        loadingIndicator.startAnimating()
-        processingLabel.isHidden = false
-        uploadButton.isEnabled = false
-    }
-    
-    // ✅ Hide Loading
-    private func hideLoading() {
-        loadingIndicator.stopAnimating()
-        processingLabel.isHidden = true
-        uploadButton.isEnabled = true
-    }
-    private func showLoadingIndicator() {
-    DispatchQueue.main.async {
-        self.loadingIndicator.startAnimating()
-        self.processingLabel.isHidden = false
-        self.uploadButton.isEnabled = false
-    }
-}
 
 private func hideLoadingIndicator() {
     DispatchQueue.main.async {
@@ -376,10 +325,10 @@ private func uploadImageToAPI(data: Data, referenceID: String) {
                     return rootViewController
                 }
                 DispatchQueue.main.async {
-                    self.closeFrontCapturedScreen()
+//                    self.closeFrontCapturedScreen()
                     
 
-                    let frontBackCapturedVC = IdCardFrontBackCapturedViewController()
+                    let frontBackCapturedVC = DigitalFrontDetailsViewController()
                     frontBackCapturedVC.modalPresentationStyle = .fullScreen
                     self.present(frontBackCapturedVC, animated: true, completion: nil)
                     // let frontBackCapturedViewController = IdCardFrontBackCapturedViewController()
@@ -434,49 +383,33 @@ func showAlert(_ title: String, _ message: String) {
         }
     }
 }
-extension UIColor {
-    convenience init(hex: String) {
-        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
-
-        var rgb: UInt64 = 0
-        Scanner(string: hexSanitized).scanHexInt64(&rgb)
-
-        let red = CGFloat((rgb >> 16) & 0xFF) / 255.0
-        let green = CGFloat((rgb >> 8) & 0xFF) / 255.0
-        let blue = CGFloat(rgb & 0xFF) / 255.0
-
-        self.init(red: red, green: green, blue: blue, alpha: 1.0)
-    }
-    func getTopViewController(_ rootViewController: UIViewController? = UIApplication.shared.connectedScenes
-    .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-    .first?.rootViewController) -> UIViewController? {
-    
-    if let presentedViewController = rootViewController?.presentedViewController {
-        return getTopViewController(presentedViewController)
-    }
-    if let navigationController = rootViewController as? UINavigationController {
-        return getTopViewController(navigationController.visibleViewController)
-    }
-    if let tabBarController = rootViewController as? UITabBarController {
-        return getTopViewController(tabBarController.selectedViewController)
-    }
-    return rootViewController
-}
-}
-extension UIColor {
-    convenience init(hex: String) {
-        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
-
-        var rgb: UInt64 = 0
-        Scanner(string: hexSanitized).scanHexInt64(&rgb)
-
-        let red = CGFloat((rgb >> 16) & 0xFF) / 255.0
-        let green = CGFloat((rgb >> 8) & 0xFF) / 255.0
-        let blue = CGFloat(rgb & 0xFF) / 255.0
-
-        self.init(red: red, green: green, blue: blue, alpha: 1.0)
-    }
-    
-}
+//extension UIColor {
+//    convenience init(hex: String) {
+//        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+//        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
+//
+//        var rgb: UInt64 = 0
+//        Scanner(string: hexSanitized).scanHexInt64(&rgb)
+//
+//        let red = CGFloat((rgb >> 16) & 0xFF) / 255.0
+//        let green = CGFloat((rgb >> 8) & 0xFF) / 255.0
+//        let blue = CGFloat(rgb & 0xFF) / 255.0
+//
+//        self.init(red: red, green: green, blue: blue, alpha: 1.0)
+//    }
+//    func getTopViewController(_ rootViewController: UIViewController? = UIApplication.shared.connectedScenes
+//    .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+//    .first?.rootViewController) -> UIViewController? {
+//    
+//    if let presentedViewController = rootViewController?.presentedViewController {
+//        return getTopViewController(presentedViewController)
+//    }
+//    if let navigationController = rootViewController as? UINavigationController {
+//        return getTopViewController(navigationController.visibleViewController)
+//    }
+//    if let tabBarController = rootViewController as? UITabBarController {
+//        return getTopViewController(tabBarController.selectedViewController)
+//    }
+//    return rootViewController
+//}
+//}

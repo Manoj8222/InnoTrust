@@ -1,6 +1,7 @@
 import UIKit
 import AVFoundation
 import Vision
+import CoreMotion
 
 class LivelinessDetectionViewController: UIViewController {
     private var captureSession: AVCaptureSession!
@@ -18,12 +19,19 @@ class LivelinessDetectionViewController: UIViewController {
     private let earThreshold: Float = 0.019
     private var countdownTimer: Timer?
     private var countdownSeconds = 3
+    private let motionManager = CMMotionManager()
+    private var imageCaptured = false
+    var camOcrLibInstance: CamOcrLib?
+
+    private let orientationWarningLabel = UILabel()
+    private var isPortraitMode = true
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupCamera()
         setupUI()
         setupFaceDetection()
+        startDeviceMotionUpdates()
     }
 
     enum LivelinessState {
@@ -37,38 +45,82 @@ class LivelinessDetectionViewController: UIViewController {
 private var currentState: LivelinessState = .waitingForBlink
     
     private func setupCamera() {
-        captureSession = AVCaptureSession()
-        guard let frontCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
-            print("No front camera available")
-            return
-        }
-        do {
-            let input = try AVCaptureDeviceInput(device: frontCamera)
-            captureSession.addInput(input)
-            captureSession.addOutput(cameraOutput)
-        } catch {
-            print("Error accessing front camera: \(error)")
-        }
-        
-        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-        previewLayer.videoGravity = .resizeAspectFill
-        previewLayer.frame = view.layer.bounds
-        view.layer.addSublayer(previewLayer)
-        captureSession.startRunning()
+    captureSession = AVCaptureSession()
+    guard let frontCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
+        print("No front camera available")
+        return
+    }
+    do {
+        let input = try AVCaptureDeviceInput(device: frontCamera)
+        captureSession.addInput(input)
+        captureSession.addOutput(cameraOutput)
+    } catch {
+        print("Error accessing front camera: \(error)")
     }
     
+    previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+    previewLayer.videoGravity = .resizeAspectFill
+    previewLayer.frame = view.bounds // Set initial frame
+    view.layer.addSublayer(previewLayer)
+    captureSession.startRunning()
+}
+    
     private func setupUI() {
+
+        orientationWarningLabel.frame = CGRect(x: 20, y: 100, width: view.frame.width-40, height: 100)
+        orientationWarningLabel.numberOfLines = 0
+        orientationWarningLabel.textAlignment = .center
+        orientationWarningLabel.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        orientationWarningLabel.textColor = .white
+        orientationWarningLabel.text = "Please rotate your device\nto portrait mode to continue."
+        orientationWarningLabel.layer.cornerRadius = 10
+        orientationWarningLabel.clipsToBounds = true
+        orientationWarningLabel.isHidden = true
+        view.addSubview(orientationWarningLabel)
+
+        orientationWarningLabel.translatesAutoresizingMaskIntoConstraints = false
+        orientationWarningLabel.numberOfLines = 0
+        orientationWarningLabel.textAlignment = .center
+        orientationWarningLabel.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        orientationWarningLabel.textColor = .white
+        orientationWarningLabel.text = "Please rotate your device\nto portrait mode to continue."
+        orientationWarningLabel.layer.cornerRadius = 10
+        orientationWarningLabel.clipsToBounds = true
+        orientationWarningLabel.isHidden = true
+        view.addSubview(orientationWarningLabel)
+
+    NSLayoutConstraint.activate([
+        orientationWarningLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+        orientationWarningLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+        orientationWarningLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+        orientationWarningLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+        orientationWarningLabel.heightAnchor.constraint(equalToConstant: 100)
+    ])
+        
         translucentBox.frame = CGRect(x: 20, y: 100, width: view.frame.width - 40, height: 50)
         translucentBox.backgroundColor = UIColor.black.withAlphaComponent(0.6)
         translucentBox.layer.cornerRadius = 10
-        view.addSubview(translucentBox)
+        translucentBox.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(translucentBox)
+    NSLayoutConstraint.activate([
+        translucentBox.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+        translucentBox.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+        translucentBox.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+        translucentBox.heightAnchor.constraint(equalToConstant: 50)
+    ])
         
         statusLabel.frame = translucentBox.bounds
         statusLabel.text = "Please place your face in the camera view"
         statusLabel.textColor = .white
         statusLabel.textAlignment = .center
-        translucentBox.addSubview(statusLabel)
-        
+        statusLabel.translatesAutoresizingMaskIntoConstraints = false
+    translucentBox.addSubview(statusLabel)
+    NSLayoutConstraint.activate([
+        statusLabel.leadingAnchor.constraint(equalTo: translucentBox.leadingAnchor, constant: 10),
+        statusLabel.trailingAnchor.constraint(equalTo: translucentBox.trailingAnchor, constant: -10),
+        statusLabel.topAnchor.constraint(equalTo: translucentBox.topAnchor),
+        statusLabel.bottomAnchor.constraint(equalTo: translucentBox.bottomAnchor)
+    ])
         countdownLabel.frame = CGRect(x: (view.frame.width - 100) / 2, y: view.center.y - 50, width: 100, height: 100)
         countdownLabel.font = UIFont.boldSystemFont(ofSize: 40)
         countdownLabel.textColor = .white
@@ -76,11 +128,25 @@ private var currentState: LivelinessState = .waitingForBlink
         countdownLabel.backgroundColor = UIColor.black.withAlphaComponent(0.6)
         countdownLabel.layer.cornerRadius = 10
         countdownLabel.isHidden = true
-        view.addSubview(countdownLabel)
+        countdownLabel.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(countdownLabel)
+    NSLayoutConstraint.activate([
+        countdownLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+        countdownLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+        countdownLabel.widthAnchor.constraint(equalToConstant: 100),
+        countdownLabel.heightAnchor.constraint(equalToConstant: 100)
+    ])
         
         loadingIndicator.center = view.center
         loadingIndicator.hidesWhenStopped = true
-        view.addSubview(loadingIndicator)
+        loadingIndicator.transform = CGAffineTransform(scaleX: 1.5, y: 1.5)
+        loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(loadingIndicator)
+    NSLayoutConstraint.activate([
+        loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+        loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+    ])
+        
     }
     
     private func setupFaceDetection() {
@@ -94,10 +160,15 @@ private var currentState: LivelinessState = .waitingForBlink
         videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue.global(qos: .userInteractive))
         captureSession.addOutput(videoOutput)
     }
-
-
+    
 private func processFaceObservations(_ observations: [VNFaceObservation]) {
-    guard let face = observations.first else {
+    guard isPortraitMode else {
+        DispatchQueue.main.async {
+            self.statusLabel.text = "Please rotate to portrait mode"
+        }
+        return
+    }
+     guard let face = observations.first else {
             DispatchQueue.main.async {
                 self.statusLabel.text = "Please place your face in the camera view"
                 // Reset countdown state if no face is detected
@@ -244,10 +315,109 @@ private func captureSelfie() {
     
     let settings = AVCapturePhotoSettings()
     cameraOutput.capturePhoto(with: settings, delegate: self)
+    // DispatchQueue.main.async {
+    //     self.captureSession.stopRunning()
+    // }
+}
+
+@objc private func handleOrientationChange(for orientation: UIDeviceOrientation) {
     DispatchQueue.main.async {
-        self.captureSession.stopRunning()
+        if orientation.isLandscape {
+            self.isPortraitMode = false
+            self.showOrientationWarning()
+            self.resetDetectionState()
+        } else if orientation.isPortrait {
+            self.isPortraitMode = true
+            self.hideOrientationWarning()
+            self.restartDetectionIfNeeded()
+        }
+        
+        // Update previewLayer frame
+        self.previewLayer.frame = self.view.bounds
     }
 }
+
+private func showOrientationWarning() {
+    orientationWarningLabel.isHidden = false
+    translucentBox.isHidden = true
+    countdownLabel.isHidden = true
+    loadingIndicator.stopAnimating()
+}
+
+private func hideOrientationWarning() {
+    orientationWarningLabel.isHidden = true
+    translucentBox.isHidden = false
+}
+
+private func resetDetectionState() {
+    currentState = .waitingForBlink
+    countdownTimer?.invalidate()
+    countdownTimer = nil
+    countdownLabel.isHidden = true
+    loadingIndicator.stopAnimating()
+    statusLabel.text = "Please place your face in the camera view"
+    lastEyeState = false
+}
+
+private func restartDetectionIfNeeded() {
+    if captureSession?.isRunning == false && imageCaptured == false {
+        captureSession.startRunning()
+    }
+    if imageCaptured {
+        captureSession.stopRunning()
+    }
+}
+
+
+  override func viewWillDisappear(_ animated: Bool) {
+      super.viewWillDisappear(animated)
+      motionManager.stopDeviceMotionUpdates()
+      
+  }
+
+override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+    super.viewWillTransition(to: size, with: coordinator)
+    
+    coordinator.animate(alongsideTransition: { _ in
+        // Update previewLayer frame
+        self.previewLayer.frame = CGRect(origin: .zero, size: size)
+        
+        // Update UI elements
+        self.orientationWarningLabel.frame = CGRect(x: 20, y: 100, width: size.width - 40, height: 100)
+        self.translucentBox.frame = CGRect(x: 20, y: 100, width: size.width - 40, height: 50)
+        self.countdownLabel.frame = CGRect(x: (size.width - 100) / 2, y: size.height / 2 - 50, width: 100, height: 100)
+    }, completion: nil)
+}
+
+private func startDeviceMotionUpdates() {
+    guard motionManager.isDeviceMotionAvailable else {
+        print("Device motion is not available")
+        return
+    }
+    
+    motionManager.deviceMotionUpdateInterval = 0.1 // Update every 0.1 seconds
+    motionManager.startDeviceMotionUpdates(to: .main) { [weak self] (motion, error) in
+        guard let self = self, let motion = motion else { return }
+        
+        let gravity = motion.gravity
+        let orientation: UIDeviceOrientation
+        
+        if gravity.x >= 0.5 {
+            orientation = .landscapeRight
+        } else if gravity.x <= -0.5 {
+            orientation = .landscapeLeft
+        } else if gravity.y <= -0.5 {
+            orientation = .portrait
+        } else if gravity.y >= 0.5 {
+            orientation = .portraitUpsideDown
+        } else {
+            orientation = .unknown
+        }
+        
+        self.handleOrientationChange(for: orientation)
+    }
+}
+
 }
 
 extension LivelinessDetectionViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AVCapturePhotoCaptureDelegate {
@@ -318,13 +488,15 @@ func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo:
         print("❌ Missing required data for verification API")
         return
     }
+    self.resetDetectionState()
+    imageCaptured = true
     print(croppedFaceData,"---------------------------")
     print(selfieImageData,"---------------------------")
     print(referenceID,"---------------------------")
 
     let formData = MultipartFormData()
-    formData.addFileData(croppedFaceData, fieldName: "reference_image", fileName: "reference.jpg", mimeType: "image/jpeg")
-    formData.addFileData(selfieImageData, fieldName: "candidate_image", fileName: "candidate.jpg", mimeType: "image/jpeg")
+    formData.addFileData(croppedFaceData, fieldName: "reference_image", fileName: referenceID + "_profile_image.jpg", mimeType: "image/jpeg")
+    formData.addFileData(selfieImageData, fieldName: "candidate_image", fileName: referenceID + "_selfie.jpg", mimeType: "image/jpeg")
     formData.addTextField(referenceID, fieldName: "reference_id")
 
     // var request = URLRequest(url: URL(string: "https://api-innovitegra.online/innomatcher/verify-images")!)
@@ -358,86 +530,79 @@ func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo:
             // Stop Loading Indicator
             self.loadingIndicator.stopAnimating()
             print(jsonObject, "---------------------------")
-            
-            // Save Verification Result
-            SharedViewModel.shared.verificationResult = jsonObject
+            print(jsonObject?["verification_status"], "---------------------------")
+            print(referenceID, "---------------------------")
 
-            // Dismiss current view before presenting the final screen
-                // ✅ Navigate to FinalVerificationViewController
-              if let topVC = self.getTopViewController() {
-                    let finalVC = FinalVerificationViewController()
-                    finalVC.modalPresentationStyle = .fullScreen
-                    topVC.present(finalVC, animated: true, completion: {
-                        print("✅ Successfully presented FinalVerificationViewController")
-                    })
-                } else {
-                    print("❌ Unable to find the visible view controller to present")
-                }
+            // In your ViewController's callVerificationAPI function, after dismissing the view controllers:
+          if let rootVC = UIApplication.shared.connectedScenes
+              .filter({ $0.activationState == .foregroundActive })
+              .compactMap({ $0 as? UIWindowScene })
+              .first?.windows
+              .filter({ $0.isKeyWindow }).first?.rootViewController {
+
+                SharedViewModel.shared.capturedImageData = nil
+                SharedViewModel.shared.ocrResponse = nil
+                SharedViewModel.shared.ocrResponseBack = nil
+                SharedViewModel.shared.croppedFaceImageData = nil
+                SharedViewModel.shared.faceCropped = nil
+                SharedViewModel.shared.referenceNumber = nil
+                SharedViewModel.shared.frontImage = nil
+                SharedViewModel.shared.backImage = nil
+                SharedViewModel.shared.selfieImage = nil
+                SharedViewModel.shared.verificationResult = nil
+                SharedViewModel.shared.isDigitalID = false
+                SharedViewModel.shared.digitalFrontImage = nil
+                SharedViewModel.shared.digitalBackImage = nil
+              
+              rootVC.dismiss(animated: true) {
+                print("✅ All native screens closed, returning to React Native")
+                let bridge = LivelinessDetectionBridge()
+                bridge.sendReferenceID(referenceID)
+//                if let bridge = RCTBridge.current() {
+//                    let camOcrLib = bridge.module(for: CamOcrLib.self) as! CamOcrLib
+//                    camOcrLib.sendVerificationCompleteEvent(referenceId: referenceID)
+//                }
+//                CamOcrLib.shared.referenceId = referenceID
+                //   print("✅ All native screens closed, returning to React Native")
+                //   CamOcrLib.shared.sendVerificationCompleteEvent(referenceId: referenceID)
+              }
+          } else {
+              print("❌ Failed to find root view controller")
+          }
+//                rootVC.dismiss(animated: true) {
+//                    print("✅ All native screens closed, returning to React Native")
+//                    // Send referenceID to React Native
+//                    // if let bridge = RCTBridge.current() {
+//                    //     let CamOcrLib = bridge.module(for: CamOcrLib.self) as! CamOcrLib
+//                        // self.camOcrLibInstance?.sendVerificationCompleteEvent(referenceId: referenceID)
+//
+//                        CamOcrLib.shared.sendVerificationCompleteEvent(referenceId: referenceID)
+//                    // }
+//                }
+            
+            // // Save Verification Result
+            // SharedViewModel.shared.verificationResult = jsonObject
+
+            // // Dismiss current view before presenting the final screen
+            //     // ✅ Navigate to FinalVerificationViewController
+            //   if let topVC = self.getTopViewController() {
+            //         let finalVC = FinalVerificationViewController()
+            //         finalVC.modalPresentationStyle = .fullScreen
+            //         topVC.present(finalVC, animated: true, completion: {
+            //             print("✅ Successfully presented FinalVerificationViewController")
+            //         })
+            //     } else {
+            //         print("❌ Unable to find the visible view controller to present")
+            //     }
             
         } catch {
             print("❌ Error parsing verify-images response: \(error)")
         }
     }
 }
-//     let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
-//     DispatchQueue.main.async {
-//         if let error = error {
-//             print("❌ Error calling verify-images API: \(error)")
-//             self.loadingIndicator.stopAnimating()
-//             return
-//         }
-
-//         guard let data = data, 
-//               let httpResponse = response as? HTTPURLResponse, 
-//               httpResponse.statusCode == 200 else {
-//             print("❌ Invalid response from verify-images API")
-//             self.loadingIndicator.stopAnimating()
-//             return
-//         }
-
-//         do {
-//             let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-//             SharedViewModel.shared.verificationResult = jsonObject
-            
-//             // Stop loading indicator first
-//             self.loadingIndicator.stopAnimating()
-            
-//             // Dismiss current controller first
-//             self.dismiss(animated: true) {
-//                 // Present new controller after dismissal completes
-//                 let finalVC = FinalVerificationViewController()
-//                 finalVC.modalPresentationStyle = .fullScreen
-                
-//                 // Get the root view controller
-//                 if let rootVC = UIApplication.shared.windows.first(where: { $0.isKeyWindow })?.rootViewController {
-//                     rootVC.present(finalVC, animated: true)
-//                 } else {
-//                     print("❌ Could not find root view controller")
-//                 }
-//             }
-            
-//         } catch {
-//             print("❌ Error parsing verify-images response: \(error)")
-//             self.loadingIndicator.stopAnimating()
-//         }
-//     }
-// }
     task.resume()
 }
 
-
-   
-    //  DispatchQueue.main.async {
-    //     // self.loadingIndicator.stopAnimating()
-    //     // self.currentState = .waitingForBlink
-    //     // self.isBlinkDetected = false // Reset these too
-    //     // self.isLeftTurnDetected = false
-    //     // self.isRightTurnDetected = false
-    //     // self.dismiss(animated: true)
-
-    // }
-
-    
     func getTopViewController(_ rootViewController: UIViewController? = UIApplication.shared.connectedScenes
     .compactMap { ($0 as? UIWindowScene)?.keyWindow }
     .first?.rootViewController) -> UIViewController? {
@@ -456,8 +621,7 @@ func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo:
 
 
 
-override func viewWillDisappear(_ animated: Bool) {
-    super.viewWillDisappear(animated)
-    captureSession.stopRunning() // Add this line
+
+
 }
-}
+

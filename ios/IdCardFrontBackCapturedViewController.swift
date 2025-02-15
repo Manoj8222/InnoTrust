@@ -66,12 +66,11 @@ class IdCardFrontBackCapturedViewController: UIViewController {
 
         // ✅ Process Button
         processButton.setTitle("Process to Liveliness Detection", for: .normal)
-        processButton.backgroundColor = .blue
+        processButton.backgroundColor = UIColor(red: 0x59/255.0, green: 0xD5/255.0, blue: 0xFF/255.0, alpha: 1.0)
         processButton.setTitleColor(.white, for: .normal)
         processButton.layer.cornerRadius = 10
         processButton.translatesAutoresizingMaskIntoConstraints = false
         mainStackView.addArrangedSubview(processButton)
-
         processButton.heightAnchor.constraint(equalToConstant: 50).isActive = true
         processButton.addTarget(self, action: #selector(processLiveliness), for: .touchUpInside)
     }

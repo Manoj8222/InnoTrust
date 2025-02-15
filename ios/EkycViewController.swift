@@ -6,7 +6,7 @@ class EkycViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .white
+        setupGradientBackground()
         setupButtons()
     }
 
@@ -56,6 +56,18 @@ class EkycViewController: UIViewController {
             digitalIDButton.heightAnchor.constraint(equalToConstant: 80),
             digitalIDButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
         ])
+    }
+
+    private func setupGradientBackground() {
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.frame = view.bounds
+        gradientLayer.colors = [
+            UIColor(hex: "#60CFFF").cgColor,
+            UIColor(hex: "#C5EEFF").cgColor,
+        ]
+        gradientLayer.startPoint = CGPoint(x: 0.5, y: 0.0)
+        gradientLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
+        view.layer.insertSublayer(gradientLayer, at: 0)
     }
 
     private func createButton(title: String, subtitle: String, action: Selector) -> UIButton {

@@ -123,6 +123,23 @@ class FinalVerificationViewController: UIViewController {
     }
 
     private func addCloseButton() {
+        SharedViewModel.shared.capturedImageData = nil
+        SharedViewModel.shared.ocrResponse = nil
+        SharedViewModel.shared.ocrResponseBack = nil
+        SharedViewModel.shared.croppedFaceImageData = nil
+        SharedViewModel.shared.faceCropped = nil
+        SharedViewModel.shared.referenceNumber = nil
+        SharedViewModel.shared.frontImage = nil
+        SharedViewModel.shared.backImage = nil
+        SharedViewModel.shared.selfieImage = nil
+        SharedViewModel.shared.verificationResult = nil
+        SharedViewModel.shared.isDigitalID = false
+        SharedViewModel.shared.digitalFrontImage = nil
+        SharedViewModel.shared.digitalBackImage = nil
+
+        print("✅ SharedViewModel reset successfully")
+
+
         let closeButton = UIButton(type: .system)
         closeButton.setTitle("Close", for: .normal)
         closeButton.backgroundColor = .systemBlue  // ✅ Changed to blue

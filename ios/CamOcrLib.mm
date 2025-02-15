@@ -12,6 +12,9 @@ RCT_EXTERN_METHOD(getHelloWorld:(RCTPromiseResolveBlock)resolve
 
 RCT_EXTERN_METHOD(showEkycUI:(RCTPromiseResolveBlock)resolve
                  withRejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(startLivelinessDetection)
+// RCT_EXTERN_METHOD(sendReferenceId:(RCTPromiseResolveBlock)resolve
+//                  withRejecter:(RCTPromiseRejectBlock)reject)
 
 + (BOOL)requiresMainQueueSetup
 {

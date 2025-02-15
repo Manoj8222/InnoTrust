@@ -62,10 +62,12 @@ class UploadFrontDigitalIDViewController: UIViewController, UIImagePickerControl
         uploadButton.layer.cornerRadius = 10
         uploadButton.translatesAutoresizingMaskIntoConstraints = false
         uploadButton.addTarget(self, action: #selector(uploadButtonTapped), for: .touchUpInside)
+        uploadButton.backgroundColor = UIColor(red: 0x59/255.0, green: 0xD5/255.0, blue: 0xFF/255.0, alpha: 1.0)
         view.addSubview(uploadButton)
         
         // ✅ Loading Indicator
         loadingIndicator.hidesWhenStopped = true
+        loadingIndicator.transform = CGAffineTransform(scaleX: 1.5, y: 1.5)
         loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(loadingIndicator)
         
@@ -73,7 +75,7 @@ class UploadFrontDigitalIDViewController: UIViewController, UIImagePickerControl
         processingLabel.text = "Processing..."
         processingLabel.font = UIFont.boldSystemFont(ofSize: 18)
         processingLabel.textAlignment = .center
-        processingLabel.textColor = .white
+        processingLabel.textColor = .black
         processingLabel.isHidden = true
         processingLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(processingLabel)
@@ -93,8 +95,8 @@ class UploadFrontDigitalIDViewController: UIViewController, UIImagePickerControl
             
             uploadButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
             uploadButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            uploadButton.widthAnchor.constraint(equalToConstant: 200),
-            uploadButton.heightAnchor.constraint(equalToConstant: 50),
+            uploadButton.widthAnchor.constraint(equalToConstant: 280),
+            uploadButton.heightAnchor.constraint(equalToConstant: 55),
             
             loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
@@ -119,7 +121,8 @@ class UploadFrontDigitalIDViewController: UIViewController, UIImagePickerControl
             // ✅ Image Already Selected → Start Loading & API Call
             showLoading()
             if let imageData = selectedImage.jpegData(compressionQuality: 0.9) {
-                let referenceID = "INNOVERIFYIOSDIG" + String(Int(Date().timeIntervalSince1970))
+            let referenceID = "INNOVERIFYIOS" + String(Int(Date().timeIntervalSince1970)) + String(format: "%08d", Int.random(in: 1000000...9999999))
+
                 SharedViewModel.shared.referenceNumber = referenceID
                 uploadImageToAPI(data: imageData, referenceID: referenceID)
             }

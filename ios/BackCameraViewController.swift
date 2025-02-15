@@ -93,6 +93,7 @@ private func addCameraOverlay() {
     captureButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
     captureButton.backgroundColor = .blue
     captureButton.setTitleColor(.white, for: .normal)
+    captureButton.backgroundColor = UIColor(red: 0x59/255.0, green: 0xD5/255.0, blue: 0xFF/255.0, alpha: 1.0)
     captureButton.layer.cornerRadius = 10
     captureButton.translatesAutoresizingMaskIntoConstraints = false
     captureButton.addTarget(self, action: #selector(capturePhoto), for: .touchUpInside)
@@ -115,8 +116,8 @@ private func addCameraOverlay() {
 
         captureButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
         captureButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -50),
-        captureButton.widthAnchor.constraint(equalToConstant: 200),
-        captureButton.heightAnchor.constraint(equalToConstant: 50)
+        captureButton.widthAnchor.constraint(equalToConstant: 280),
+        captureButton.heightAnchor.constraint(equalToConstant: 55)
     ])
 
     // ✅ Ensure UI elements stay on top
@@ -139,6 +140,7 @@ private func addCameraOverlay() {
         loadingIndicator = UIActivityIndicatorView(style: .large)
         loadingIndicator.center = view.center
         loadingIndicator.hidesWhenStopped = true
+        loadingIndicator.transform = CGAffineTransform(scaleX: 1.5, y: 1.5)
         view.addSubview(loadingIndicator)
         // captureButton.isEnabled = false
     }
@@ -352,31 +354,7 @@ private func uploadImageToAPI(data: Data, referenceID: String) {
                     let frontBackCapturedVC = IdCardFrontBackCapturedViewController()
                     frontBackCapturedVC.modalPresentationStyle = .fullScreen
                     self.present(frontBackCapturedVC, animated: true, completion: nil)
-                    // let frontBackCapturedViewController = IdCardFrontBackCapturedViewController()
-                    // frontBackCapturedViewController.modalPresentationStyle = .fullScreen
-
-                    // if let topVC = self.getTopViewController(), topVC.view.window != nil {
-                    //     topVC.present(frontBackCapturedViewController, animated: true, completion: {
-                    //         print("✅ Successfully presented IdCardFrontBackCapturedViewController")
-                    //     })
-                    // } else {
-                    //     print("❌ Unable to find the visible view controller to present")
-                    // }
                 }
-                // DispatchQueue.main.async {
-                //     self.closeFrontCapturedScreen()
-
-                //     let capturedViewController = IdCardFrontCapturedViewController()
-                //     capturedViewController.modalPresentationStyle = .fullScreen
-
-                //     if let topVC = getTopViewController(), topVC.view.window != nil {
-                //         topVC.present(capturedViewController, animated: true, completion: {
-                //             print("✅ Successfully presented IdCardFrontCapturedViewController")
-                //         })
-                //     } else {
-                //         print("❌ Unable to find the visible view controller to present")
-                //     }
-                // }
             } catch {
                 DispatchQueue.main.async {
                     self.showAlert("Parsing Error", "Failed to parse OCR response.")
@@ -388,27 +366,6 @@ private func uploadImageToAPI(data: Data, referenceID: String) {
 
     croppingTask.resume()
 }
-
-    // private func handleAPIResponse(_ data: Data) {
-    //     do {
-    //         let jsonResponse = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-    //         if let idAnalysis = jsonResponse?["id_analysis"] as? [String: Any],
-    //            let front = idAnalysis["front"] as? [String: Any],
-    //            let croppedFace = jsonResponse?["cropped_face"] as? String {
-    //             let ocrResponse = OcrResponseFront(
-    //                 fullName: front["Full_name"] as? String ?? "N/A",
-    //                 dob: front["Date_of_birth"] as? String ?? "N/A",
-    //                 sex: front["Sex"] as? String ?? "N/A",
-    //                 nationality: front["Nationality"] as? String ?? "N/A",
-    //                 fcn: front["FCN"] as? String ?? "N/A",
-    //                 dateOfExpiry: front["Date_of_expiry"] as? String ?? "N/A",
-    //                 imageUrl: croppedFace
-    //             )
-    //         }
-    //     } catch {
-    //         showAlert("Processing Error", "Failed to parse response")
-    //     }
-    // }
      func showAlert(_ title: String, _ message: String) {
         DispatchQueue.main.async {
             let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)

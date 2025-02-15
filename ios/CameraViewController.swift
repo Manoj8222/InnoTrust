@@ -126,7 +126,7 @@ private func addCameraOverlay() {
     captureButton = UIButton(type: .system)
     captureButton.setTitle("Capture Front Side", for: .normal)
     captureButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
-    captureButton.backgroundColor = .blue
+    captureButton.backgroundColor = UIColor(red: 0x59/255.0, green: 0xD5/255.0, blue: 0xFF/255.0, alpha: 1.0)
     captureButton.setTitleColor(.white, for: .normal)
     captureButton.layer.cornerRadius = 10
     captureButton.translatesAutoresizingMaskIntoConstraints = false
@@ -150,8 +150,8 @@ private func addCameraOverlay() {
 
         captureButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
         captureButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -50),
-        captureButton.widthAnchor.constraint(equalToConstant: 200),
-        captureButton.heightAnchor.constraint(equalToConstant: 50)
+        captureButton.widthAnchor.constraint(equalToConstant: 280),
+        captureButton.heightAnchor.constraint(equalToConstant: 55)
     ])
 
     // ✅ Ensure UI elements stay on top
@@ -174,8 +174,8 @@ private func addCameraOverlay() {
         loadingIndicator = UIActivityIndicatorView(style: .large)
         loadingIndicator.center = view.center
         loadingIndicator.hidesWhenStopped = true
+        loadingIndicator.transform = CGAffineTransform(scaleX: 1.5, y: 1.5)
         view.addSubview(loadingIndicator)
-        // captureButton.isEnabled = false
     }
 
     @objc private func capturePhoto() {
@@ -230,7 +230,8 @@ private func processImage(_ imageData: Data) {
     loadingIndicator.startAnimating()
     view.bringSubviewToFront(loadingIndicator)
     
-    let referenceID = "INNOVERIFYIOS" + String(Int(Date().timeIntervalSince1970))
+let referenceID = "INNOVERIFYIOS" + String(Int(Date().timeIntervalSince1970)) + String(format: "%08d", Int.random(in: 1000000...9999999))
+
     uploadImageToAPI(data: imageData, referenceID: referenceID)
 }
 
